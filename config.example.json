@@ -1,0 +1,64 @@
+{
+  "configuracionLista": false,
+  "fuenteAutorizada": false,
+  "versionFlujo": "1.1.0-general",
+  "location": "Santiago, Chile",
+  "zonasPermitidas": ["Santiago", "Región Metropolitana"],
+  "aceptarRemoto": true,
+  "excluirPracticas": true,
+  "excluirSenior": false,
+  "scoreMinimo": 65,
+  "maxOfertasPorEjecucion": 1,
+  "descripcionMinimaCaracteres": 200,
+  "maxDescripcionCaracteres": 16000,
+  "geminiMaxOutputTokens": 6000,
+  "googleSheetId": "REEMPLAZAR_ID_DOCUMENTO",
+  "googleSheetName": "Ofertas",
+  "geminiModel": "REEMPLAZAR_MODELO_DISPONIBLE",
+  "telegramChatId": "REEMPLAZAR_CHAT_ID",
+  "generarPdf": false,
+  "latexApiUrl": "",
+  "perfilesObjetivo": [
+    {"id": "perfil_1", "nombre": "REEMPLAZAR_CARGO_OBJETIVO", "descripcion": "REEMPLAZAR_FUNCIONES_DEL_CARGO_QUE_BUSCAS"}
+  ],
+  "busquedas": [
+    {"keyword": "REEMPLAZAR_TERMINO_DE_BUSQUEDA", "categoria": "perfil_1"}
+  ],
+  "catalogoCv": {
+    "candidato": {
+      "id": "REEMPLAZAR_ID_CANDIDATO",
+      "nombre": "REEMPLAZAR_NOMBRE",
+      "titulo": "REEMPLAZAR_TITULO_REAL",
+      "resumen": "REEMPLAZAR_RESUMEN_VERIFICADO_SIN_INVENTAR_EXPERIENCIA",
+      "ubicacion": "REEMPLAZAR_UBICACION",
+      "telefono": "",
+      "email": "",
+      "linkedin": "",
+      "github": ""
+    },
+    "experienciaProfesionalMesesAprox": 0,
+    "experiencias": [
+      {
+        "id": "experiencia_1",
+        "cargo": "REEMPLAZAR_CARGO_O_ELIMINAR_ESTA_EXPERIENCIA",
+        "empresa": "REEMPLAZAR_EMPRESA",
+        "fechas": "REEMPLAZAR_FECHAS",
+        "bullets": [{"id": "experiencia_1_bullet_1", "texto": "REEMPLAZAR_FUNCION_REAL"}],
+        "herramientas": "",
+        "tipoEvidencia": "Experiencia laboral documentada"
+      }
+    ],
+    "proyectos": [
+      {"id": "proyecto_1", "nombre": "REEMPLAZAR_PROYECTO_O_ELIMINARLO", "descripcion": "REEMPLAZAR_DESCRIPCION_REAL", "herramientas": ""}
+    ],
+    "habilidades": {"Competencias verificadas": ["REEMPLAZAR_HABILIDADES_REALES"]},
+    "certificaciones": [],
+    "educacion": {"titulo": "REEMPLAZAR_ESTUDIOS_REALES", "estado": "REEMPLAZAR_ESTADO", "institucion": "REEMPLAZAR_INSTITUCION", "detalle": ""},
+    "idiomas": [{"idioma": "Español", "nivel": "REEMPLAZAR_NIVEL_REAL"}],
+    "criteriosEvidencia": [
+      "Los proyectos no equivalen a años de experiencia laboral.",
+      "Un curso preparatorio no equivale a aprobar un examen de certificación oficial.",
+      "No atribuir funciones, licencias ni competencias profesionales sin evidencia documentada."
+    ]
+  }
+}

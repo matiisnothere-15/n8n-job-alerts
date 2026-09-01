@@ -1,0 +1,1 @@
+candidato_id	fecha_deteccion	id_externo	titulo	empresa	ubicacion	modalidad	fuente	fecha_publicacion	url	keyword_origen	categoria_seleccionada	descripcion	score	decision	perfil_cv	titulo_cv	justificacion	requisitos_faltantes	experiencias_seleccionadas	proyectos_seleccionados	certificaciones_seleccionadas	cv_latex	mensaje_postulacion	estado	fecha_postulacion
