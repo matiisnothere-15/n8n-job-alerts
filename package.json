@@ -1,0 +1,15 @@
+{
+  "name": "n8n-job-alerts",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/validate.mjs && node scripts/regression.mjs",
+    "sync": "node scripts/sync.mjs"
+  },
+  "engines": {"node": ">=22"},
+  "devDependencies": {
+    "cheerio": "1.1.2",
+    "html-to-text": "9.0.5"
+  }
+}

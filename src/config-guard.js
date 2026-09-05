@@ -10,9 +10,10 @@ if (!/^[a-zA-Z0-9_-]{20,}$/.test(config.googleSheetId || '')) fail('googleSheetI
 if (!String(config.googleSheetName || '').trim()) fail('falta el nombre exacto de la pestaña.');
 if (!/^-?\d+$/.test(String(config.telegramChatId || ''))) fail('telegramChatId debe ser numérico.');
 if (!/^[a-zA-Z0-9._-]+$/.test(config.geminiModel || '')) fail('indica el nombre de un modelo disponible, sin models/.');
-for (const [key, min, max] of [['scoreMinimo',45,100],['maxOfertasPorEjecucion',1,30],['descripcionMinimaCaracteres',120,2000],['maxDescripcionCaracteres',2000,30000],['geminiMaxOutputTokens',2000,16000]]) {
+for (const [key, min, max] of [['scoreMinimo',45,100],['maxOfertasPorEjecucion',1,30],['maxDetallesPorEjecucion',1,100],['descripcionMinimaCaracteres',120,2000],['maxDescripcionCaracteres',2000,30000],['geminiMaxOutputTokens',2000,16000]]) {
   if (!Number.isInteger(config[key]) || config[key] < min || config[key] > max) fail(key + ' fuera del rango ' + min + '..' + max);
 }
+if (config.maxDetallesPorEjecucion < config.maxOfertasPorEjecucion) fail('maxDetallesPorEjecucion debe ser mayor o igual que maxOfertasPorEjecucion.');
 for (const key of ['aceptarRemoto','excluirPracticas','excluirSenior','generarPdf']) if (typeof config[key] !== 'boolean') fail(key + ' debe ser booleano.');
 if (!String(config.location || '').trim()) fail('falta location.');
 if (!Array.isArray(config.zonasPermitidas) || config.zonasPermitidas.some(v => typeof v !== 'string' || !v.trim())) fail('zonasPermitidas debe ser una lista de textos.');

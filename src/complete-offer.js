@@ -1,0 +1,14 @@
+const original=$('Conservar oferta').item.json._original;
+if (!original?.id_externo) throw new Error('Oferta original no vinculada.');
+const c=$('Configuración').first().json;
+const descripcion=String($input.item.json.descripcion||'').replace(/\s+/g,' ').trim().slice(0,c.maxDescripcionCaracteres);
+const norm=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const content=norm(original.ubicacion+' '+descripcion);
+const modalidad=/\bhibrid[oa]\b/.test(content)?'Híbrido':/\b(remoto|remote|teletrabajo)\b/.test(content)?'Remoto':/\b(presencial|onsite|on site)\b/.test(content)?'Presencial':'No especificado';
+const zone=norm(original.ubicacion);
+const allowed=!zone || !c.zonasPermitidas.length || c.zonasPermitidas.some(z=>zone.includes(norm(z))) || (c.aceptarRemoto && modalidad==='Remoto');
+let motivo='';
+if (descripcion.length<c.descripcionMinimaCaracteres) motivo='DETALLE_INSUFICIENTE';
+else if(c.excluirPracticas && /\b(seguro escolar|convenio de practica|practicante|pasantia|internship)\b/.test(content)) motivo='PRACTICA_EXCLUIDA';
+else if(!allowed) motivo='FUERA_DE_ZONA';
+return {json:{...original,descripcion,modalidad,detalle_valido:!motivo,_motivoDetalle:motivo}};

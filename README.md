@@ -77,12 +77,15 @@ El generador privado valida que la configuración esté completa; no funcionará
 
 | Archivo | Para qué sirve |
 | --- | --- |
-| `workflow.configurable.json` | Flujo importable en n8n, con 38 nodos y valores por completar. |
+| `workflow.configurable.json` | Flujo importable en n8n, con 43 nodos y valores por completar. |
 | `config.example.json` | Estructura completa del perfil, búsquedas y opciones. No contiene claves. |
 | `columnas.txt` | Una fila tabulada con los 26 encabezados para pegar en Sheets. |
 | `scripts/configure.mjs` | Genera una copia privada del flujo a partir de tu configuración. |
 | `scripts/sync.mjs` | Sincroniza las fuentes y el ejemplo público con el JSON distribuible. |
 | `scripts/validate.mjs` | Pruebas locales del código, sin llamadas externas. |
+| `scripts/regression.mjs`, `tests/fixtures/` | Regresiones de extracción HTML, reparto entre ciclos, límites, configuración y Telegram. |
+| `scripts/workflow-lib.mjs` | Sincronización compartida de todas las fuentes en el generador público y privado. |
+| `package.json`, `package-lock.json` | Dependencias de desarrollo para probar HTML con Cheerio y html-to-text; no se instalan en n8n. |
 | `src/` | Código legible del validador, petición a Gemini, análisis y construcción del CV. |
 | `SECURITY.md`, `.gitignore`, `LICENSE` | Seguridad, exclusión de archivos privados y licencia MIT del proyecto. |
 
@@ -168,7 +171,7 @@ El endpoint utilizado es `https://generativelanguage.googleapis.com/v1beta/model
 
 ### Camino B: generar una copia privada con Node.js
 
-Requiere Node.js 22 o posterior para los scripts. No requiere instalar paquetes.
+Requiere Node.js 22 o posterior para los scripts. Generar la configuración privada y ejecutar la validación básica no requiere instalar paquetes. La suite completa de regresión usa dependencias de desarrollo: `npm ci --ignore-scripts` y `npm test`.
 
 1. Duplica `config.example.json` como `config.local.json` en tu equipo.
 2. Edita la copia con tu perfil y configuración. No agregues claves API ni tokens: van exclusivamente en n8n.
@@ -196,7 +199,8 @@ El generador valida el perfil, no contacta servicios y no sobrescribe un `privat
 | `busquedas` | Entre 1 y 12 pares `keyword` + `categoria`. Cada `categoria` debe coincidir con el `id` de un perfil objetivo. Varios términos pueden apuntar al mismo perfil. |
 | `excluirPracticas` / `excluirSenior` | Por defecto `true` / `false`. Activa o desactiva según la persona; no todos buscan puestos junior. Si excluyes senior, también se filtran semisenior. |
 | `scoreMinimo` | Umbral de alerta, inicialmente 65. Las restricciones obligatorias pueden impedir APTO aunque reduzcas el umbral. |
-| `maxOfertasPorEjecucion` | Inicialmente 1; controla análisis nuevos, no el total de peticiones de búsqueda. |
+| `maxOfertasPorEjecucion` | Inicialmente 1; máximo de ofertas con detalle válido que se envían a la IA. |
+| `maxDetallesPorEjecucion` | Inicialmente 10; máximo de detalles consultados antes de seleccionar los análisis. Entre 1 y 100, mayor o igual que `maxOfertasPorEjecucion`. Las búsquedas por término son adicionales. |
 | `generarPdf` / `latexApiUrl` | Inicialmente `false` y vacío. Ver sección de PDF. |
 | `configuracionLista` | Cambia a `true` después de revisar la configuración. |
 | `fuenteAutorizada` | Cambia a `true` solo tras verificar que puedes utilizar la fuente en tu caso. |
@@ -252,11 +256,11 @@ La clave es únicamente `id_externo`: **una persona por hoja**. No mezcles candi
 
 ## 8. Primera prueba y activación
 
-1. Mantén `generarPdf: false`, `maxOfertasPorEjecucion: 1` y el horario sin activar.
+1. Mantén `generarPdf: false`, `maxOfertasPorEjecucion: 1`, `maxDetallesPorEjecucion: 10` y el horario sin activar.
 2. Ejecuta **Probar manualmente**. Si **Configuración** falla, corrige el campo que indica; no quites el guard.
 3. Comprueba que la búsqueda devuelve títulos y URLs, y que **Eliminar duplicados del lote** devuelve IDs `linkedin-...`.
 4. Comprueba la lectura de Sheets. Una hoja vacía con encabezados es válida; un error de acceso no lo es.
-5. Revisa **Evaluar con Gemini** y **Analizar respuesta IA**: debe haber un análisis válido, no `ERROR_IA`.
+5. Revisa **Evaluar con Gemini** y **Analizar respuesta IA**: si hay una oferta con detalle válido, debe haber un análisis válido, no `ERROR_IA`. Los descartes de detalle pasan por **Registrar descarte de detalle** sin llamar a Gemini.
 6. Confirma visualmente la fila en Sheets. Una ejecución verde de otro nodo no prueba que se haya guardado.
 7. Si la oferta es APTO, verifica la alerta en Telegram. REVISAR y DESCARTAR se guardan, pero no envían alerta; es normal que la primera oferta no genere mensaje. Para probar solo Telegram utiliza un nodo temporal con un mensaje de prueba, sin bajar artificialmente el score del flujo.
 8. Repite manualmente y confirma que no se analiza otra vez el mismo ID ya guardado. Las filas `ERROR_IA` se pueden reintentar en ejecuciones posteriores.
@@ -315,6 +319,17 @@ Estados del registro:
 - `REVISAR`: compatibilidad parcial; requiere revisión.
 - `DESCARTADA`: bajo score o fuera del objetivo.
 - `ERROR_IA`: análisis fallido; se admite un reintento posterior.
+- `DETALLE_INSUFICIENTE`: descripción demasiado corta; no se llamó a la IA.
+- `PRACTICA_EXCLUIDA`: el detalle revela una práctica excluida por la configuración.
+- `FUERA_DE_ZONA`: el detalle no confirma una modalidad remota admitida para una ciudad fuera de las zonas configuradas.
+
+Los tres descartes de detalle quedan registrados y no consumen el cupo de IA ni se repiten automáticamente. Si verificaste que una oferta fue corregida, cambia solo su estado a `ERROR_DETALLE` para permitir otro intento mientras la fuente siga devolviendo ese ID. Las ofertas válidas que exceden el cupo de IA se dejan pendientes, sin marcarlas como procesadas.
+
+El reparto da prioridad a la categoría cuyo último intento guardado en Sheets sea más antiguo, utilizando `categoria_seleccionada` y `fecha_deteccion`. Así rota entre ejecuciones incluso con un solo análisis por ciclo. No borres esas columnas si quieres conservar el reparto. Los errores de IA también cuentan como intentos; esto no añade un bloqueo de concurrencia.
+
+Con `aceptarRemoto: true`, una ciudad fuera de zona en la tarjeta se verifica después de descargar la descripción; puede aumentar las consultas de detalle hasta el límite configurado. Una oferta presencial fuera de zona se registra como descarte. La extracción de búsqueda conserva cada tarjeta como una unidad y falla si falta su título o enlace.
+
+Una respuesta HTML de login, bloqueo o estructura desconocida detiene la búsqueda. Se aceptan como resultados vacíos los marcadores conocidos de “sin resultados” y una respuesta del endpoint guest compuesta solo por espacios. Si la fuente cambia su contrato, se deben actualizar guard y fixtures; no se intenta eludir restricciones.
 
 El guardado ocurre antes de construir el PDF. Por eso `cv_latex` queda vacío en Sheets en esta versión; el LaTeX, si se genera, está en la ejecución del nodo de construcción. `fecha_postulacion` se deja vacía para uso manual. No se envían postulaciones ni se registran confirmaciones de envío.
 
@@ -363,11 +378,24 @@ Como alternativa visual, usa GitHub Desktop para añadir esa carpeta, revisar lo
 
 ## 14. Validación y alcance de esta entrega
 
-Se incluyen 33 pruebas locales: sintaxis, conexiones, guard de configuración, deduplicación, dominio de URLs, límites, filas reintentables, JSON de Gemini, errores, evidencia inexistente, experiencia, idiomas, objetivos configurables, 26 columnas, protección de fórmulas, CV con varias experiencias/sin experiencia y mensajes acotados. Hay casos sintéticos de contabilidad, ventas, logística, educación y diseño, además del ejemplo informático. También se comprueban licencias no acreditadas y categorías inválidas. Estas pruebas simulan respuestas de la IA; no demuestran su precisión real en cada profesión.
+Se incluyen 55 pruebas locales: las 33 validaciones básicas de sintaxis, conexiones, configuración, deduplicación, IA, columnas y CV, más 22 regresiones. Las regresiones procesan fixtures HTML con los parsers usados por el nodo HTML, comprueban campos ausentes, login y cambios de estructura, cupos separados, turnos entre ciclos, modalidad remota, escape de Telegram, sustituciones literales y generación privada sin sobrescritura. Hay perfiles sintéticos de distintas profesiones. Las respuestas de IA son simuladas; no se mide su precisión real.
 
-Ejecuta `node scripts/validate.mjs` desde el proyecto. Los tests usan datos sintéticos y no realizan solicitudes. **No sustituyen una importación en n8n ni una prueba de extremo a extremo.** En esta entrega no se probaron tus credenciales, los permisos reales de Sheets, la disponibilidad del endpoint de ofertas, la entrega de Telegram ni un compilador PDF. El horario se entrega desactivado.
+Para ejecutar toda la suite desde el proyecto:
 
-Para modificar código: `src/analyze.js`, `src/cv.js`, `src/gemini-body.js` y `src/config-guard.js` son las fuentes usadas por el generador privado. Para publicar cambios, ejecuta `node scripts/sync.mjs` y después `node scripts/validate.mjs`. El primero sincroniza el JSON público usando exclusivamente `config.example.json`: mantén ese archivo sin datos personales. Documenta la versión de n8n en la que hiciste la prueba real.
+```bash
+npm ci --ignore-scripts
+npm test
+```
+
+La instalación descarga dependencias del registro npm; las pruebas usan datos sintéticos y no realizan solicitudes. `node scripts/validate.mjs` sigue disponible como comprobación básica sin dependencias. GitHub Actions ejecuta la suite en Linux y Windows con Node.js 22. Se validó localmente con Node.js 24.19.0. **No sustituye una importación en n8n ni una prueba de extremo a extremo.** No se probaron las credenciales, permisos reales de Sheets, disponibilidad de LinkedIn, entrega de Telegram ni un compilador PDF. El horario se entrega desactivado.
+
+Para modificar código, usa los archivos de `src/`; el mapa en `scripts/workflow-lib.mjs` mantiene sincronizados los nodos en el generador público y privado. Ejecuta `node scripts/sync.mjs` y después `npm test`. Sync usa exclusivamente `config.example.json`: mantén ese archivo sin datos personales. Las pruebas comprueban que la plantilla coincide con todas las fuentes. Documenta la versión de n8n en la que hagas la prueba real.
+
+### Actualización a 1.2.0
+
+Sustituye el paquete completo e importa el workflow de 43 nodos como un flujo nuevo. Añade `maxDetallesPorEjecucion: 10` a tu configuración privada y mantenlo mayor o igual que el límite de análisis. Se conservan las mismas 26 columnas. Asigna las credenciales, prueba manualmente y evita activar al mismo tiempo el flujo anterior y el nuevo. Las alertas usan HTML explícito y campos escapados; los caracteres Markdown de las ofertas se envían como texto.
+
+Antes de personalizar para alguien: ejecuta las pruebas sintéticas, completa su catálogo privado, configura credenciales en n8n y haz una prueba manual con un análisis. Solo después activa el horario. El reenvío tras fallos de Telegram sigue siendo manual, como se explica en la sección 11.
 
 ### Actualización desde la plantilla inicial
 
