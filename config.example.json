@@ -1,7 +1,7 @@
 {
   "configuracionLista": false,
   "fuenteAutorizada": false,
-  "versionFlujo": "1.1.0-general",
+  "versionFlujo": "1.2.0",
   "location": "Santiago, Chile",
   "zonasPermitidas": ["Santiago", "Región Metropolitana"],
   "aceptarRemoto": true,
@@ -9,6 +9,7 @@
   "excluirSenior": false,
   "scoreMinimo": 65,
   "maxOfertasPorEjecucion": 1,
+  "maxDetallesPorEjecucion": 10,
   "descripcionMinimaCaracteres": 200,
   "maxDescripcionCaracteres": 16000,
   "geminiMaxOutputTokens": 6000,

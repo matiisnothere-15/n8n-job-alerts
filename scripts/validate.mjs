@@ -3,6 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import {codeFiles,configureWorkflow} from './workflow-lib.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const w=JSON.parse(fs.readFileSync(path.join(root,'workflow.configurable.json'),'utf8'));
 const node=name=>w.nodes.find(n=>n.name===name);
@@ -21,8 +22,8 @@ const run=(name,items=[],refs={})=>{
   return jsonClone(vm.runInNewContext('(function(){'+node(name).parameters.jsCode+'})()',{$input:{all:()=>arr,item:arr[0],first:()=>arr[0]},$,$json:items[0]},{timeout:1000}));
 };
 const expr=(value,j={},refs={})=>vm.runInNewContext(value.slice(3,-2),{$json:j,$:key=>({first:()=>({json:key==='Configuración'?cfg:refs[key]}),item:{json:refs[key]}})},{timeout:1000});
-test('JSON inactivo, 38 nodos únicos y sin credenciales',()=>{
-  assert.equal(w.active,false); assert.equal(w.nodes.length,38);
+test('JSON inactivo, 43 nodos únicos y sin credenciales',()=>{
+  assert.equal(w.active,false); assert.equal(w.nodes.length,43);
   assert.equal(new Set(w.nodes.map(n=>n.id)).size,w.nodes.length);
   for(const n of w.nodes)assert.equal(n.credentials,undefined);
   assert.deepEqual(w.pinData,{});
@@ -35,7 +36,7 @@ test('Conexiones sin destinos inexistentes',()=>{
 test('Sintaxis de todos los nodos Code',()=>{for(const n of w.nodes)if(n.type==='n8n-nodes-base.code')new vm.Script('(function(){'+n.parameters.jsCode+'})');});
 test('Plantilla se detiene antes de usar servicios',()=>assert.throws(()=>run('Configuración'),/Configuración/));
 test('Fuentes JS sincronizadas',()=>{
-  for(const [name,file] of [['Analizar respuesta IA','analyze.js'],['Construir CV LaTeX','cv.js']])assert.equal(node(name).parameters.jsCode,fs.readFileSync(path.join(root,'src',file),'utf8'));
+  for(const [name,file] of Object.entries(codeFiles))assert.equal(node(name).parameters.jsCode,fs.readFileSync(path.join(root,'src',file),'utf8').replace(/\r\n/g,'\n'));
 });
 // Datos sintéticos, no pertenecen a una persona real.
 cfg.configuracionLista=true;cfg.fuenteAutorizada=true;
@@ -56,7 +57,7 @@ test('URL de otro dominio y títulos vacíos se rechazan',()=>{assert.throws(()=
 test('Sin ofertas produce una salida vacía legítima',()=>assert.deepEqual(run('Eliminar duplicados del lote',[]),[]));
 test('Sheets lee una vez y los errores no se ocultan',()=>{assert.equal(node('Leer ofertas guardadas').executeOnce,true);for(const name of ['Leer ofertas guardadas','Guardar en Google Sheets'])assert.equal(node(name).onError,'stopWorkflow');});
 test('IDs ERROR_IA son reintentables, otros ya procesados no',()=>{const r=run('IDs existentes',[{id_externo:'1',estado:'ERROR_IA'},{id_externo:'2',estado:'DESCARTADA'}]);assert.deepEqual(r[0].json.idsExistentes,['2']);});
-test('Límite de análisis, exclusión de prácticas y deduplicado persistente',()=>{
+test('Selección de detalles, exclusión de prácticas y deduplicado persistente',()=>{
   const refs={'IDs existentes':{idsExistentes:['old']},'Eliminar duplicados del lote':[{id_externo:'old',titulo:'QA junior',ubicacion:'Santiago',categoria_origen:'qa'},{id_externo:'new',titulo:'QA junior',ubicacion:'Santiago',categoria_origen:'qa'},{id_externo:'intern',titulo:'Práctica QA',ubicacion:'Santiago',categoria_origen:'qa'}]};
   const r=run('Marcar ofertas nuevas',[],refs);assert.equal(r.length,1);assert.equal(r[0].json.id_externo,'new');
 });

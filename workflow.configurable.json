@@ -15,7 +15,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// El JSON entre estos marcadores se reemplaza con scripts/configure.mjs.\n// CONFIG_START\nconst config = {\n  \"configuracionLista\": false,\n  \"fuenteAutorizada\": false,\n  \"versionFlujo\": \"1.1.0-general\",\n  \"location\": \"Santiago, Chile\",\n  \"zonasPermitidas\": [\n    \"Santiago\",\n    \"Región Metropolitana\"\n  ],\n  \"aceptarRemoto\": true,\n  \"excluirPracticas\": true,\n  \"excluirSenior\": false,\n  \"scoreMinimo\": 65,\n  \"maxOfertasPorEjecucion\": 1,\n  \"descripcionMinimaCaracteres\": 200,\n  \"maxDescripcionCaracteres\": 16000,\n  \"geminiMaxOutputTokens\": 6000,\n  \"googleSheetId\": \"REEMPLAZAR_ID_DOCUMENTO\",\n  \"googleSheetName\": \"Ofertas\",\n  \"geminiModel\": \"REEMPLAZAR_MODELO_DISPONIBLE\",\n  \"telegramChatId\": \"REEMPLAZAR_CHAT_ID\",\n  \"generarPdf\": false,\n  \"latexApiUrl\": \"\",\n  \"perfilesObjetivo\": [\n    {\n      \"id\": \"perfil_1\",\n      \"nombre\": \"REEMPLAZAR_CARGO_OBJETIVO\",\n      \"descripcion\": \"REEMPLAZAR_FUNCIONES_DEL_CARGO_QUE_BUSCAS\"\n    }\n  ],\n  \"busquedas\": [\n    {\n      \"keyword\": \"REEMPLAZAR_TERMINO_DE_BUSQUEDA\",\n      \"categoria\": \"perfil_1\"\n    }\n  ],\n  \"catalogoCv\": {\n    \"candidato\": {\n      \"id\": \"REEMPLAZAR_ID_CANDIDATO\",\n      \"nombre\": \"REEMPLAZAR_NOMBRE\",\n      \"titulo\": \"REEMPLAZAR_TITULO_REAL\",\n      \"resumen\": \"REEMPLAZAR_RESUMEN_VERIFICADO_SIN_INVENTAR_EXPERIENCIA\",\n      \"ubicacion\": \"REEMPLAZAR_UBICACION\",\n      \"telefono\": \"\",\n      \"email\": \"\",\n      \"linkedin\": \"\",\n      \"github\": \"\"\n    },\n    \"experienciaProfesionalMesesAprox\": 0,\n    \"experiencias\": [\n      {\n        \"id\": \"experiencia_1\",\n        \"cargo\": \"REEMPLAZAR_CARGO_O_ELIMINAR_ESTA_EXPERIENCIA\",\n        \"empresa\": \"REEMPLAZAR_EMPRESA\",\n        \"fechas\": \"REEMPLAZAR_FECHAS\",\n        \"bullets\": [\n          {\n            \"id\": \"experiencia_1_bullet_1\",\n            \"texto\": \"REEMPLAZAR_FUNCION_REAL\"\n          }\n        ],\n        \"herramientas\": \"\",\n        \"tipoEvidencia\": \"Experiencia laboral documentada\"\n      }\n    ],\n    \"proyectos\": [\n      {\n        \"id\": \"proyecto_1\",\n        \"nombre\": \"REEMPLAZAR_PROYECTO_O_ELIMINARLO\",\n        \"descripcion\": \"REEMPLAZAR_DESCRIPCION_REAL\",\n        \"herramientas\": \"\"\n      }\n    ],\n    \"habilidades\": {\n      \"Competencias verificadas\": [\n        \"REEMPLAZAR_HABILIDADES_REALES\"\n      ]\n    },\n    \"certificaciones\": [],\n    \"educacion\": {\n      \"titulo\": \"REEMPLAZAR_ESTUDIOS_REALES\",\n      \"estado\": \"REEMPLAZAR_ESTADO\",\n      \"institucion\": \"REEMPLAZAR_INSTITUCION\",\n      \"detalle\": \"\"\n    },\n    \"idiomas\": [\n      {\n        \"idioma\": \"Español\",\n        \"nivel\": \"REEMPLAZAR_NIVEL_REAL\"\n      }\n    ],\n    \"criteriosEvidencia\": [\n      \"Los proyectos no equivalen a años de experiencia laboral.\",\n      \"Un curso preparatorio no equivale a aprobar un examen de certificación oficial.\",\n      \"No atribuir funciones, licencias ni competencias profesionales sin evidencia documentada.\"\n    ]\n  }\n};\n// CONFIG_END\nconst fail = message => { throw new Error('Configuración: ' + message); };\nif (config.configuracionLista !== true) fail('completa tu perfil y cambia configuracionLista a true.');\nif (config.fuenteAutorizada !== true) fail('verifica las condiciones de la fuente antes de autorizar su uso.');\nif (/REEMPLAZAR_/.test(JSON.stringify(config))) fail('quedan campos REEMPLAZAR_.');\nif (!/^[a-zA-Z0-9_-]{20,}$/.test(config.googleSheetId || '')) fail('googleSheetId debe ser el ID, no el enlace completo.');\nif (!String(config.googleSheetName || '').trim()) fail('falta el nombre exacto de la pestaña.');\nif (!/^-?\\d+$/.test(String(config.telegramChatId || ''))) fail('telegramChatId debe ser numérico.');\nif (!/^[a-zA-Z0-9._-]+$/.test(config.geminiModel || '')) fail('indica el nombre de un modelo disponible, sin models/.');\nfor (const [key, min, max] of [['scoreMinimo',45,100],['maxOfertasPorEjecucion',1,30],['descripcionMinimaCaracteres',120,2000],['maxDescripcionCaracteres',2000,30000],['geminiMaxOutputTokens',2000,16000]]) {\n  if (!Number.isInteger(config[key]) || config[key] < min || config[key] > max) fail(key + ' fuera del rango ' + min + '..' + max);\n}\nfor (const key of ['aceptarRemoto','excluirPracticas','excluirSenior','generarPdf']) if (typeof config[key] !== 'boolean') fail(key + ' debe ser booleano.');\nif (!String(config.location || '').trim()) fail('falta location.');\nif (!Array.isArray(config.zonasPermitidas) || config.zonasPermitidas.some(v => typeof v !== 'string' || !v.trim())) fail('zonasPermitidas debe ser una lista de textos.');\nif (!Array.isArray(config.busquedas) || !config.busquedas.length || config.busquedas.length > 12) fail('configura entre 1 y 12 búsquedas.');\nif (!Array.isArray(config.perfilesObjetivo) || !config.perfilesObjetivo.length || config.perfilesObjetivo.length > 12) fail('configura entre 1 y 12 perfilesObjetivo.');\nconst perfiles = new Set();\nfor (const perfil of config.perfilesObjetivo) {\n  if (!/^[a-z][a-z0-9_]*$/.test(perfil?.id || '') || perfiles.has(perfil.id) || !perfil.nombre?.trim() || !perfil.descripcion?.trim()) fail('perfil objetivo incompleto, repetido o con ID inválido.');\n  perfiles.add(perfil.id);\n}\nfor (const b of config.busquedas) if (typeof b.keyword !== 'string' || !b.keyword.trim() || !perfiles.has(b.categoria)) fail('cada búsqueda debe apuntar al ID de un perfilObjetivo.');\nconst c = config.catalogoCv;\nif (!c?.candidato?.id || !c.candidato.nombre || !c.candidato.titulo || !c.candidato.resumen || !c.candidato.ubicacion) fail('faltan datos del candidato.');\nif (!Number.isFinite(c.experienciaProfesionalMesesAprox) || c.experienciaProfesionalMesesAprox < 0) fail('meses de experiencia inválidos.');\nfor (const key of ['experiencias','proyectos','certificaciones','idiomas','criteriosEvidencia']) if (!Array.isArray(c[key])) fail(key + ' debe ser una lista.');\nif (!c.educacion || typeof c.educacion !== 'object' || !c.habilidades || Array.isArray(c.habilidades) || typeof c.habilidades !== 'object') fail('educacion y habilidades deben ser objetos.');\nif (Object.values(c.habilidades).some(v => !Array.isArray(v) || v.some(s => typeof s !== 'string' || !s.trim()))) fail('habilidades debe contener listas de textos.');\nconst ids = new Set();\nconst checkId = id => { if (!/^[a-z0-9_]+$/.test(id || '') || ids.has(id)) fail('ID vacío, repetido o inválido: ' + id); ids.add(id); };\nfor (const e of c.experiencias) {\n  checkId(e.id);\n  if (!e.cargo || !e.empresa || !e.fechas || !Array.isArray(e.bullets)) fail('experiencia incompleta.');\n  for (const b of e.bullets) { checkId(b.id); if (!b.texto?.trim()) fail('bullet sin texto.'); }\n}\nfor (const p of c.proyectos) { checkId(p.id); if (!p.nombre || !p.descripcion) fail('proyecto incompleto.'); }\nfor (const cert of c.certificaciones) { checkId(cert.id); if (!cert.titulo || !cert.institucion) fail('certificación incompleta.'); }\nfor (const idioma of c.idiomas) if (!idioma.idioma || !idioma.nivel) fail('idioma incompleto.');\nif (config.generarPdf && !/^https?:\\/\\/[^\\s]+$/.test(config.latexApiUrl || '')) fail('activa PDF solo con una API de compilación propia configurada.');\nreturn [{ json: config }];\n"
+        "jsCode": "// El JSON entre estos marcadores se reemplaza con scripts/configure.mjs.\n// CONFIG_START\nconst config = {\n  \"configuracionLista\": false,\n  \"fuenteAutorizada\": false,\n  \"versionFlujo\": \"1.2.0\",\n  \"location\": \"Santiago, Chile\",\n  \"zonasPermitidas\": [\n    \"Santiago\",\n    \"Región Metropolitana\"\n  ],\n  \"aceptarRemoto\": true,\n  \"excluirPracticas\": true,\n  \"excluirSenior\": false,\n  \"scoreMinimo\": 65,\n  \"maxOfertasPorEjecucion\": 1,\n  \"maxDetallesPorEjecucion\": 10,\n  \"descripcionMinimaCaracteres\": 200,\n  \"maxDescripcionCaracteres\": 16000,\n  \"geminiMaxOutputTokens\": 6000,\n  \"googleSheetId\": \"REEMPLAZAR_ID_DOCUMENTO\",\n  \"googleSheetName\": \"Ofertas\",\n  \"geminiModel\": \"REEMPLAZAR_MODELO_DISPONIBLE\",\n  \"telegramChatId\": \"REEMPLAZAR_CHAT_ID\",\n  \"generarPdf\": false,\n  \"latexApiUrl\": \"\",\n  \"perfilesObjetivo\": [\n    {\n      \"id\": \"perfil_1\",\n      \"nombre\": \"REEMPLAZAR_CARGO_OBJETIVO\",\n      \"descripcion\": \"REEMPLAZAR_FUNCIONES_DEL_CARGO_QUE_BUSCAS\"\n    }\n  ],\n  \"busquedas\": [\n    {\n      \"keyword\": \"REEMPLAZAR_TERMINO_DE_BUSQUEDA\",\n      \"categoria\": \"perfil_1\"\n    }\n  ],\n  \"catalogoCv\": {\n    \"candidato\": {\n      \"id\": \"REEMPLAZAR_ID_CANDIDATO\",\n      \"nombre\": \"REEMPLAZAR_NOMBRE\",\n      \"titulo\": \"REEMPLAZAR_TITULO_REAL\",\n      \"resumen\": \"REEMPLAZAR_RESUMEN_VERIFICADO_SIN_INVENTAR_EXPERIENCIA\",\n      \"ubicacion\": \"REEMPLAZAR_UBICACION\",\n      \"telefono\": \"\",\n      \"email\": \"\",\n      \"linkedin\": \"\",\n      \"github\": \"\"\n    },\n    \"experienciaProfesionalMesesAprox\": 0,\n    \"experiencias\": [\n      {\n        \"id\": \"experiencia_1\",\n        \"cargo\": \"REEMPLAZAR_CARGO_O_ELIMINAR_ESTA_EXPERIENCIA\",\n        \"empresa\": \"REEMPLAZAR_EMPRESA\",\n        \"fechas\": \"REEMPLAZAR_FECHAS\",\n        \"bullets\": [\n          {\n            \"id\": \"experiencia_1_bullet_1\",\n            \"texto\": \"REEMPLAZAR_FUNCION_REAL\"\n          }\n        ],\n        \"herramientas\": \"\",\n        \"tipoEvidencia\": \"Experiencia laboral documentada\"\n      }\n    ],\n    \"proyectos\": [\n      {\n        \"id\": \"proyecto_1\",\n        \"nombre\": \"REEMPLAZAR_PROYECTO_O_ELIMINARLO\",\n        \"descripcion\": \"REEMPLAZAR_DESCRIPCION_REAL\",\n        \"herramientas\": \"\"\n      }\n    ],\n    \"habilidades\": {\n      \"Competencias verificadas\": [\n        \"REEMPLAZAR_HABILIDADES_REALES\"\n      ]\n    },\n    \"certificaciones\": [],\n    \"educacion\": {\n      \"titulo\": \"REEMPLAZAR_ESTUDIOS_REALES\",\n      \"estado\": \"REEMPLAZAR_ESTADO\",\n      \"institucion\": \"REEMPLAZAR_INSTITUCION\",\n      \"detalle\": \"\"\n    },\n    \"idiomas\": [\n      {\n        \"idioma\": \"Español\",\n        \"nivel\": \"REEMPLAZAR_NIVEL_REAL\"\n      }\n    ],\n    \"criteriosEvidencia\": [\n      \"Los proyectos no equivalen a años de experiencia laboral.\",\n      \"Un curso preparatorio no equivale a aprobar un examen de certificación oficial.\",\n      \"No atribuir funciones, licencias ni competencias profesionales sin evidencia documentada.\"\n    ]\n  }\n};\n// CONFIG_END\nconst fail = message => { throw new Error('Configuración: ' + message); };\nif (config.configuracionLista !== true) fail('completa tu perfil y cambia configuracionLista a true.');\nif (config.fuenteAutorizada !== true) fail('verifica las condiciones de la fuente antes de autorizar su uso.');\nif (/REEMPLAZAR_/.test(JSON.stringify(config))) fail('quedan campos REEMPLAZAR_.');\nif (!/^[a-zA-Z0-9_-]{20,}$/.test(config.googleSheetId || '')) fail('googleSheetId debe ser el ID, no el enlace completo.');\nif (!String(config.googleSheetName || '').trim()) fail('falta el nombre exacto de la pestaña.');\nif (!/^-?\\d+$/.test(String(config.telegramChatId || ''))) fail('telegramChatId debe ser numérico.');\nif (!/^[a-zA-Z0-9._-]+$/.test(config.geminiModel || '')) fail('indica el nombre de un modelo disponible, sin models/.');\nfor (const [key, min, max] of [['scoreMinimo',45,100],['maxOfertasPorEjecucion',1,30],['maxDetallesPorEjecucion',1,100],['descripcionMinimaCaracteres',120,2000],['maxDescripcionCaracteres',2000,30000],['geminiMaxOutputTokens',2000,16000]]) {\n  if (!Number.isInteger(config[key]) || config[key] < min || config[key] > max) fail(key + ' fuera del rango ' + min + '..' + max);\n}\nif (config.maxDetallesPorEjecucion < config.maxOfertasPorEjecucion) fail('maxDetallesPorEjecucion debe ser mayor o igual que maxOfertasPorEjecucion.');\nfor (const key of ['aceptarRemoto','excluirPracticas','excluirSenior','generarPdf']) if (typeof config[key] !== 'boolean') fail(key + ' debe ser booleano.');\nif (!String(config.location || '').trim()) fail('falta location.');\nif (!Array.isArray(config.zonasPermitidas) || config.zonasPermitidas.some(v => typeof v !== 'string' || !v.trim())) fail('zonasPermitidas debe ser una lista de textos.');\nif (!Array.isArray(config.busquedas) || !config.busquedas.length || config.busquedas.length > 12) fail('configura entre 1 y 12 búsquedas.');\nif (!Array.isArray(config.perfilesObjetivo) || !config.perfilesObjetivo.length || config.perfilesObjetivo.length > 12) fail('configura entre 1 y 12 perfilesObjetivo.');\nconst perfiles = new Set();\nfor (const perfil of config.perfilesObjetivo) {\n  if (!/^[a-z][a-z0-9_]*$/.test(perfil?.id || '') || perfiles.has(perfil.id) || !perfil.nombre?.trim() || !perfil.descripcion?.trim()) fail('perfil objetivo incompleto, repetido o con ID inválido.');\n  perfiles.add(perfil.id);\n}\nfor (const b of config.busquedas) if (typeof b.keyword !== 'string' || !b.keyword.trim() || !perfiles.has(b.categoria)) fail('cada búsqueda debe apuntar al ID de un perfilObjetivo.');\nconst c = config.catalogoCv;\nif (!c?.candidato?.id || !c.candidato.nombre || !c.candidato.titulo || !c.candidato.resumen || !c.candidato.ubicacion) fail('faltan datos del candidato.');\nif (!Number.isFinite(c.experienciaProfesionalMesesAprox) || c.experienciaProfesionalMesesAprox < 0) fail('meses de experiencia inválidos.');\nfor (const key of ['experiencias','proyectos','certificaciones','idiomas','criteriosEvidencia']) if (!Array.isArray(c[key])) fail(key + ' debe ser una lista.');\nif (!c.educacion || typeof c.educacion !== 'object' || !c.habilidades || Array.isArray(c.habilidades) || typeof c.habilidades !== 'object') fail('educacion y habilidades deben ser objetos.');\nif (Object.values(c.habilidades).some(v => !Array.isArray(v) || v.some(s => typeof s !== 'string' || !s.trim()))) fail('habilidades debe contener listas de textos.');\nconst ids = new Set();\nconst checkId = id => { if (!/^[a-z0-9_]+$/.test(id || '') || ids.has(id)) fail('ID vacío, repetido o inválido: ' + id); ids.add(id); };\nfor (const e of c.experiencias) {\n  checkId(e.id);\n  if (!e.cargo || !e.empresa || !e.fechas || !Array.isArray(e.bullets)) fail('experiencia incompleta.');\n  for (const b of e.bullets) { checkId(b.id); if (!b.texto?.trim()) fail('bullet sin texto.'); }\n}\nfor (const p of c.proyectos) { checkId(p.id); if (!p.nombre || !p.descripcion) fail('proyecto incompleto.'); }\nfor (const cert of c.certificaciones) { checkId(cert.id); if (!cert.titulo || !cert.institucion) fail('certificación incompleta.'); }\nfor (const idioma of c.idiomas) if (!idioma.idioma || !idioma.nivel) fail('idioma incompleto.');\nif (config.generarPdf && !/^https?:\\/\\/[^\\s]+$/.test(config.latexApiUrl || '')) fail('activa PDF solo con una API de compilación propia configurada.');\nreturn [{ json: config }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -131,19 +131,19 @@
             {
               "key": "titulo",
               "cssSelector": ".base-search-card__title, .base-card__title",
-              "returnArray": true,
+              "returnArray": false,
               "returnValue": "text"
             },
             {
               "key": "empresa",
               "cssSelector": ".base-search-card__subtitle",
-              "returnArray": true,
+              "returnArray": false,
               "returnValue": "text"
             },
             {
               "key": "ubicacion",
               "cssSelector": ".job-search-card__location",
-              "returnArray": true,
+              "returnArray": false,
               "returnValue": "text"
             },
             {
@@ -151,14 +151,14 @@
               "cssSelector": "time",
               "returnValue": "attribute",
               "attribute": "datetime",
-              "returnArray": true
+              "returnArray": false
             },
             {
               "key": "url",
               "cssSelector": "a.base-card__full-link",
               "returnValue": "attribute",
               "attribute": "href",
-              "returnArray": true
+              "returnArray": false
             }
           ]
         },
@@ -177,7 +177,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ofertas = [];\n\n  for (const entrada of $input.all()) {\n    const datos = entrada.json || {};\n    const titulos = Array.isArray(datos.titulo) ? datos.titulo : [];\n    const empresas = Array.isArray(datos.empresa) ? datos.empresa : [];\n    const ubicaciones = Array.isArray(datos.ubicacion) ? datos.ubicacion : [];\n    const fechas = Array.isArray(datos.fecha_publicacion) ? datos.fecha_publicacion : [];\n    const urls = Array.isArray(datos.url) ? datos.url : [];\n    const cantidad = Math.max(titulos.length, urls.length);\n\n    for (let indice = 0; indice < cantidad; indice++) {\n      const titulo = String(titulos[indice] || '').replace(/\\s+/g, ' ').trim();\n      const url = String(urls[indice] || '').replace(/&amp;/g, '&').trim();\n      if (!titulo || !url) continue;\n\n      ofertas.push({\n        titulo,\n        empresa: String(empresas[indice] || '').replace(/\\s+/g, ' ').trim(),\n        ubicacion: String(ubicaciones[indice] || '').replace(/\\s+/g, ' ').trim(),\n        fecha_publicacion: String(fechas[indice] || '').trim(),\n        url,\n        fuente: 'LinkedIn',\n        keyword_origen: String(datos.keyword_origen || ''),\n        categoria_origen: String(datos.categoria_origen || ''),\n        orden_busqueda: Number(datos.orden_busqueda || 0),\n      });\n    }\n  }\n\n  return ofertas.map(oferta => ({ json: oferta }));",
+        "jsCode": "// Los campos ya pertenecen a una sola tarjeta; nunca unir arrays por posición.\nreturn $input.all().flatMap((entry,index)=>{\n  const data=entry.json;\n  if (data._sinResultados) return [];\n  for (const key of ['empresa','ubicacion','fecha_publicacion']) if (data[key] == null) data[key]='';\n  for (const key of ['titulo','empresa','ubicacion','fecha_publicacion','url']) {\n    if (typeof data[key] !== 'string') throw new Error('Fuente: campo de tarjeta inválido: '+key);\n  }\n  if (!data.titulo.trim() || !data.url.trim()) throw new Error('Fuente: tarjeta incompleta.');\n  const clean=v=>v.replace(/\\s+/g,' ').trim();\n  return [{json:{titulo:clean(data.titulo),empresa:clean(data.empresa),ubicacion:clean(data.ubicacion),\n    fecha_publicacion:data.fecha_publicacion.trim(),url:data.url.replace(/&amp;/g,'&').trim(),fuente:'LinkedIn',\n    keyword_origen:String(data.keyword_origen||''),categoria_origen:String(data.categoria_origen||''),\n    orden_busqueda:Number(data.orden_busqueda||0)},pairedItem:{item:index}}];\n});\n",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -233,7 +233,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const ids = $input\n    .all()\n    .map(entrada => entrada.json || {})\n    .filter(fila => !/^ERROR_/i.test(String(fila.estado || '')))\n    .map(fila => fila.id_externo)\n    .filter(Boolean)\n    .map(String);\n\n  return [{ json: { idsExistentes: [...new Set(ids)] } }];",
+        "jsCode": "const rows=$input.all().map(i=>i.json || {});\nconst idsExistentes=[...new Set(rows.filter(r=>!/^ERROR_/i.test(String(r.estado||''))).map(r=>r.id_externo).filter(Boolean).map(String))];\n// La fecha del último intento guardado da prioridad a categorías menos atendidas.\nconst ultimoTurnoPorCategoria=Object.create(null);\nfor (const row of rows) {\n  const category=String(row.categoria_seleccionada||'');\n  const when=Date.parse(row.fecha_deteccion)||0;\n  if (category) ultimoTurnoPorCategoria[category]=Math.max(ultimoTurnoPorCategoria[category]||0,when);\n}\nreturn [{json:{idsExistentes,ultimoTurnoPorCategoria}}];\n",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -263,7 +263,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const c=$('Configuración').first().json;\nconst ids=new Set($('IDs existentes').first().json.idsExistentes || []);\nconst norm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();\nconst cats=[...new Set(c.busquedas.map(b=>b.categoria))];\nconst groups=Object.fromEntries(cats.map(k=>[k,[]]));\nconst candidates=$('Eliminar duplicados del lote').all().map(i=>i.json).filter(i=>{\n  if (!i.id_externo || ids.has(i.id_externo)) return false;\n  const title=norm(i.titulo),zone=norm(i.ubicacion);\n  if (c.excluirPracticas && /\\b(practica|practicante|pasantia|internship|intern|becario)\\b/.test(title)) return false;\n  if (c.excluirSenior && /\\b(senior|semisenior|sr|ssr|lead|principal|staff|manager|jefe|director|gerente)\\b/.test(title)) return false;\n  return !zone || !c.zonasPermitidas.length || c.zonasPermitidas.some(z=>zone.includes(norm(z))) || (c.aceptarRemoto && /\\b(remoto|remote|teletrabajo)\\b/.test(zone));\n}).sort((a,b)=>(Date.parse(b.fecha_publicacion)||0)-(Date.parse(a.fecha_publicacion)||0));\nfor (const i of candidates) {\n  const available=(i.categorias_origen||[i.categoria_origen]).filter(k=>groups[k]);\n  const category=(available.length?available:[cats[0]]).sort((a,b)=>groups[a].length-groups[b].length)[0];\n  groups[category].push({...i,categoria_seleccionada:category});\n}\nconst result=[];\nwhile(result.length<c.maxOfertasPorEjecucion){\n  let added=false;\n  for(const k of cats){if(groups[k].length){result.push({json:groups[k].shift()});added=true;}if(result.length>=c.maxOfertasPorEjecucion)break;}\n  if(!added)break;\n}\nreturn result;"
+        "jsCode": "const c=$('Configuración').first().json;\nconst history=$('IDs existentes').first().json;\nconst ids=new Set(history.idsExistentes || []);\nconst last=history.ultimoTurnoPorCategoria || {};\nconst norm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();\nconst cats=[...new Set(c.busquedas.map(b=>b.categoria))].sort((a,b)=>(last[a]||0)-(last[b]||0));\nconst groups=Object.fromEntries(cats.map(k=>[k,[]]));\nconst candidates=$('Eliminar duplicados del lote').all().map(i=>i.json).filter(i=>{\n  if (!i.id_externo || ids.has(i.id_externo)) return false;\n  const title=norm(i.titulo),zone=norm(i.ubicacion);\n  if (c.excluirPracticas && /\\b(practica|practicante|pasantia|internship|intern|becario)\\b/.test(title)) return false;\n  if (c.excluirSenior && /\\b(senior|semisenior|sr|ssr|lead|principal|staff|manager|jefe|director|gerente)\\b/.test(title)) return false;\n  // Con remoto habilitado la ciudad de la tarjeta no basta para descartar.\n  return c.aceptarRemoto || !zone || !c.zonasPermitidas.length || c.zonasPermitidas.some(z=>zone.includes(norm(z)));\n}).sort((a,b)=>(Date.parse(b.fecha_publicacion)||0)-(Date.parse(a.fecha_publicacion)||0));\nfor (const item of candidates) {\n  const available=(item.categorias_origen||[item.categoria_origen]).filter(k=>Object.hasOwn(groups,k));\n  const category=(available.length?available:[cats[0]]).sort((a,b)=>groups[a].length-groups[b].length || cats.indexOf(a)-cats.indexOf(b))[0];\n  groups[category].push({...item,categoria_seleccionada:category});\n}\nconst result=[];\nwhile(result.length<c.maxDetallesPorEjecucion){\n  let added=false;\n  for(const category of cats){\n    if(groups[category].length){result.push({json:groups[category].shift()});added=true;}\n    if(result.length>=c.maxDetallesPorEjecucion)break;\n  }\n  if(!added)break;\n}\nreturn result;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -374,7 +374,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const original = $('Conservar oferta').item.json._original;\nif (!original?.id_externo) throw new Error('Oferta original no vinculada.');\nconst c = $('Configuración').first().json;\nconst descripcion = String($input.item.json.descripcion || '').replace(/\\s+/g,' ').trim().slice(0,c.maxDescripcionCaracteres);\nreturn {json:{...original,descripcion,detalle_valido:descripcion.length>=c.descripcionMinimaCaracteres}};"
+        "jsCode": "const original=$('Conservar oferta').item.json._original;\nif (!original?.id_externo) throw new Error('Oferta original no vinculada.');\nconst c=$('Configuración').first().json;\nconst descripcion=String($input.item.json.descripcion||'').replace(/\\s+/g,' ').trim().slice(0,c.maxDescripcionCaracteres);\nconst norm=v=>String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();\nconst content=norm(original.ubicacion+' '+descripcion);\nconst modalidad=/\\bhibrid[oa]\\b/.test(content)?'Híbrido':/\\b(remoto|remote|teletrabajo)\\b/.test(content)?'Remoto':/\\b(presencial|onsite|on site)\\b/.test(content)?'Presencial':'No especificado';\nconst zone=norm(original.ubicacion);\nconst allowed=!zone || !c.zonasPermitidas.length || c.zonasPermitidas.some(z=>zone.includes(norm(z))) || (c.aceptarRemoto && modalidad==='Remoto');\nlet motivo='';\nif (descripcion.length<c.descripcionMinimaCaracteres) motivo='DETALLE_INSUFICIENTE';\nelse if(c.excluirPracticas && /\\b(seguro escolar|convenio de practica|practicante|pasantia|internship)\\b/.test(content)) motivo='PRACTICA_EXCLUIDA';\nelse if(!allowed) motivo='FUERA_DE_ZONA';\nreturn {json:{...original,descripcion,modalidad,detalle_valido:!motivo,_motivoDetalle:motivo}};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -861,7 +861,8 @@
         "chatId": "={{ $('Configuración').first().json.telegramChatId }}",
         "binaryData": true,
         "additionalFields": {
-          "caption": "={{ (() => {\n const j=$('¿Es buen match?').item.json;\n const c=$('Configuración').first().json;\n const clean=(v,max)=>String(v||'').slice(0,max);\n return [\n 'Oferta compatible: '+j.score+'/100', clean(j.titulo,120), clean(j.empresa,100), clean(j.ubicacion,80),\n 'CV adjunto: revisa el contenido antes de postular.',\n 'Brechas: '+clean(j.requisitos_faltantes,180),clean(j.url,160)\n ].join('\\n').slice(0,950);\n})() }}"
+          "caption": "={{ (() => {\nconst withPdf=true;\nconst j=$('¿Es buen match?').item.json;\nconst c=$('Configuración').first().json;\n// Recortar antes de escapar evita entidades HTML incompletas.\nconst clean=(value,max)=>String(value||'').slice(0,max).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\nconst status=withPdf?'CV adjunto: revisa el contenido antes de postular.':c.generarPdf?'No se pudo generar el PDF. Revisa el nodo de compilación.':'Alerta sin PDF (opción desactivada).';\nreturn ['Oferta compatible: '+j.score+'/100',clean(j.titulo,120),clean(j.empresa,100),clean(j.ubicacion,80),status,\n  'Brechas: '+clean(j.requisitos_faltantes,180),clean(j.url,160)].join('\\n');\n\n})() }}",
+          "parse_mode": "HTML"
         },
         "binaryPropertyName": "data"
       },
@@ -955,7 +956,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const b = $('Buscar cada cargo').item.json;\nreturn {json:{...$input.item.json,keyword_origen:b.keyword,categoria_origen:b.categoria,orden_busqueda:b.orden}};"
+        "jsCode": "const b = $('Buscar cada cargo').item.json;\nconst empty = $('Separar tarjetas').item.json._sinResultados;\nconst item = $input.item.json;\nif (!empty && (!String(item.titulo || '').trim() || !String(item.url || '').trim())) {\n  throw new Error('Fuente: tarjeta sin título o URL; revisa la estructura del HTML.');\n}\nreturn {json:{...item,_sinResultados:empty,keyword_origen:b.keyword,categoria_origen:b.categoria,orden_busqueda:b.orden}};\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -969,7 +970,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const c = $('Configuración').first().json;\nreturn $input.all().filter(i=>i.json.detalle_valido && (!c.excluirPracticas || !/\\b(seguro escolar|convenio de pr[aá]ctica|practicante|pasant[ií]a|internship)\\b/i.test(i.json.descripcion)));"
+        "jsCode": "const c=$('Configuración').first().json;\nlet selected=0;\nreturn $input.all().flatMap((item,index)=>{\n  // Guardar los descartes evita seleccionarlos de nuevo; no consumen el cupo IA.\n  if (!item.json.detalle_valido) return [{json:{...item.json,_omitirIa:true},pairedItem:{item:index}}];\n  if (selected>=c.maxOfertasPorEjecucion) return [];\n  selected++;\n  return [{json:{...item.json,_omitirIa:false},pairedItem:{item:index}}];\n});\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1012,8 +1013,11 @@
     {
       "parameters": {
         "chatId": "={{ $('Configuración').first().json.telegramChatId }}",
-        "text": "={{ (() => {\n const j=$('¿Es buen match?').item.json;\n const c=$('Configuración').first().json;\n const clean=(v,max)=>String(v||'').slice(0,max);\n return [\n 'Oferta compatible: '+j.score+'/100', clean(j.titulo,120), clean(j.empresa,100), clean(j.ubicacion,80),\n (c.generarPdf ? 'No se pudo generar el PDF. Revisa el nodo de compilación.' : 'Alerta sin PDF (opción desactivada).'),\n 'Brechas: '+clean(j.requisitos_faltantes,180),clean(j.url,160)\n ].join('\\n').slice(0,950);\n})() }}",
-        "additionalFields": {}
+        "text": "={{ (() => {\nconst withPdf=false;\nconst j=$('¿Es buen match?').item.json;\nconst c=$('Configuración').first().json;\n// Recortar antes de escapar evita entidades HTML incompletas.\nconst clean=(value,max)=>String(value||'').slice(0,max).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');\nconst status=withPdf?'CV adjunto: revisa el contenido antes de postular.':c.generarPdf?'No se pudo generar el PDF. Revisa el nodo de compilación.':'Alerta sin PDF (opción desactivada).';\nreturn ['Oferta compatible: '+j.score+'/100',clean(j.titulo,120),clean(j.empresa,100),clean(j.ubicacion,80),status,\n  'Brechas: '+clean(j.requisitos_faltantes,180),clean(j.url,160)].join('\\n');\n\n})() }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -1091,6 +1095,106 @@
         },
         "options": {}
       }
+    },
+    {
+      "name": "Validar búsqueda",
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item = $input.item.json;\nif (typeof item.data !== 'string') throw new Error('Fuente: la búsqueda no devolvió HTML.');\nconst html = item.data.trim();\n// Detectar páginas de autenticación/bloqueo antes de tratar un resultado como vacío.\nif (/<(?:form|iframe)\\b[^>]*(?:checkpoint|authwall|login|captcha|challenge)/i.test(html) || /(?:id|class)\\s*=\\s*[\"'][^\"']*(?:authwall|checkpoint|captcha|challenge-page|login__form)/i.test(html)) {\n  throw new Error('Fuente: autenticación o bloqueo. Detén el flujo y revisa el acceso.');\n}\n// El endpoint guest puede devolver únicamente espacios cuando no quedan resultados.\nconst empty = !html || /class\\s*=\\s*[\"'][^\"']*\\b(?:jobs-search-no-results-banner|jobs-search__no-results)\\b/i.test(html);\nconst cards = /class\\s*=\\s*[\"'][^\"']*\\bbase-card\\b/i.test(html);\nif (!empty && !cards) throw new Error('Fuente: HTML de búsqueda no reconocido; revisa los selectores.');\nreturn {json:{...item,_busquedaVacia:empty && !cards}};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "id": "job-alerts-Validar-busqueda",
+      "position": [
+        400,
+        680
+      ]
+    },
+    {
+      "name": "Extraer tarjetas",
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "tarjetas",
+              "cssSelector": ".base-card",
+              "returnValue": "html",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "id": "job-alerts-cards",
+      "position": [
+        600,
+        680
+      ]
+    },
+    {
+      "name": "Separar tarjetas",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst cards = input.tarjetas;\nconst empty = $('Validar búsqueda').item.json._busquedaVacia;\nif (!Array.isArray(cards)) throw new Error('Fuente: extracción de tarjetas inválida.');\nif (!cards.length) {\n  if (!empty) throw new Error('Fuente: había tarjetas, pero el selector no extrajo ninguna.');\n  // Un centinela conserva el retorno del bucle cuando una búsqueda no tiene ofertas.\n  return [{json:{data:'',_sinResultados:true},pairedItem:{item:0}}];\n}\nreturn cards.map(data=>({json:{data,_sinResultados:false},pairedItem:{item:0}}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "id": "job-alerts-Separar-tarjetas",
+      "position": [
+        800,
+        680
+      ]
+    },
+    {
+      "id": "job-alerts-requires-ai",
+      "name": "¿Requiere IA?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2450,
+        800
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "requires-ai",
+              "leftValue": "={{ $json._omitirIa }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Registrar descarte de detalle",
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const item=$input.item.json;\nconst c=$('Configuración').first().json;\nif (!item.id_externo || !item._motivoDetalle) throw new Error('Descarte de detalle incompleto.');\nreturn {json:{...item,candidato_id:c.catalogoCv.candidato.id,score:0,decision:'DESCARTAR',perfil_cv:'NO_EVALUADO',\n  estado:item._motivoDetalle,justificacion:'Sin análisis IA: '+item._motivoDetalle+'. Cambia estado a ERROR_DETALLE para reintentar si el contenido fue corregido.',\n  requisitos_faltantes:'No evaluados.',titulo_cv:c.catalogoCv.candidato.titulo,\n  keyword_origen:(item.keywords_origen||[]).join(', ') || item.keyword_origen || '',_seleccion:null}};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "id": "job-alerts-Registrar-descarte-de-detalle",
+      "position": [
+        2700,
+        1050
+      ]
     }
   ],
   "connections": {
@@ -1160,7 +1264,7 @@
       "main": [
         [
           {
-            "node": "Extraer resultados",
+            "node": "Validar búsqueda",
             "type": "main",
             "index": 0
           }
@@ -1360,7 +1464,7 @@
         [],
         [
           {
-            "node": "Conservar antes de Gemini",
+            "node": "¿Requiere IA?",
             "type": "main",
             "index": 0
           }
@@ -1537,6 +1641,73 @@
         [
           {
             "node": "Avisar match sin PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar búsqueda": {
+      "main": [
+        [
+          {
+            "node": "Extraer tarjetas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer tarjetas": {
+      "main": [
+        [
+          {
+            "node": "Separar tarjetas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar tarjetas": {
+      "main": [
+        [
+          {
+            "node": "Extraer resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Requiere IA?": {
+      "main": [
+        [
+          {
+            "node": "Conservar antes de Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar descarte de detalle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar descarte de detalle": {
+      "main": [
+        [
+          {
+            "node": "Preparar fila para Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Esperar guardado",
             "type": "main",
             "index": 0
           }
